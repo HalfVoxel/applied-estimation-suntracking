@@ -1,11 +1,10 @@
 % function S_bar = weight(S_bar,Psi,outlier)
-%           S_bar(t)            4XM
-%           outlier             1Xn
-%           Psi(t)              1XnXM
+%           S_bar(t)            3XM
+%           outlier             1X1
+%           Psi(t)              1XM
 % Outputs: 
-%           S_bar(t)            4XM
+%           S_bar(t)            3XM (reweighted S_bar)
 function S_bar = weight(S_bar,Psi,outlier)
     Psi(1,outlier == true,:) = 1;
-    S_bar(4,:) = prod(Psi,2);
-    S_bar(4,:) = S_bar(4,:) / sum(S_bar(4,:));
+    S_bar(3,:) = Psi / sum(Psi,2);
 end

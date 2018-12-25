@@ -5,6 +5,7 @@
 % Outputs:
 %           S(t):           4XM
 function S = multinomial_resample(S_bar)
+    assert(false, 'Multinomial resample function was called');
 	cdf = cumsum(S_bar(4,:));
     M = size(S_bar,2);
     S = zeros(size(S_bar));

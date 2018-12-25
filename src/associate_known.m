@@ -9,6 +9,7 @@
 %           outlier             1Xn
 %           Psi(t)              1XnXM
 function [outlier,Psi] = associate_known(S_bar,z,W,Lambda_psi,Q,known_associations)
+    assert(false, 'associate_known was called');
 	M = size(S_bar, 2)
 	n = size(z, 2)
 

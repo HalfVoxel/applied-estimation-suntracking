@@ -1,26 +1,30 @@
 % function [S,R,Q,Lambda_psi] = init(bound,start_pose)
 % This function initializes the parameters of the filter.
+% Inputs:
+%           bound_t:        1X2 (lower, upper bounds on initial time estimate)
+%           bound_l:        1x2 (lower, upper bounds on latitude)
+%           start_pose:     2X1 (fixed initial time estimate)
 % Outputs:
-%			S(0):			4XM
-%			R:				3X3
-%			Q:				2X2
-%           Lambda_psi:     1X1
-%           start_pose:     3X1
-function [S,R,Q,Lambda_psi] = init(bound,start_pose)
-M = 1000;
-part_bound = 20;
-if ~isempty(start_pose)
-    S = [repmat(start_pose,1,M); 1/M*ones(1,M)];
+%			S(0):			3XM (particles;row for time then row for weights)
+%			R:				2X2 (process noise)
+%			Q:				1X1 (measurement noise)
+%           Lambda_psi:     1X1 (threshold for discarding outliers)
+function [S,R,Q,Lambda_psi] = init(bound_t,bound_l, start_pose)
+M = 1000; %number of particles
+%part_bound = 20; %number of hypothesis groups
+if exist('start_pose', 'var')
+    assert(isequal(size(start_pose), [2 1]), 'Start pose has wrong dimensions');
+    S = [repmat(start_pose,1,M);
+         1/M*ones(1,M)]; %state dimensions then weights
 else
-    S = [rand(1,M)*(bound(2) - bound(1)+2*part_bound) + bound(1)-part_bound;
-         rand(1,M)*(bound(4) - bound(3)+2*part_bound) + bound(3)-part_bound;
-         rand(1,M)*2*pi-pi;
+    S = [rand(1,M)*(bound_t(2) - bound_t(1)) + bound_t(1);
+         rand(1,M)*(bound_l(2) - bound_l(1)) + bound_l(1);
          1/M*ones(1,M)];
 end
 % Below here you may want to experiment with the values but these seem to work for most datasets.
 
-R = diag([1e-2 1e-2 1e-2]); %process noise covariance matrix
-Q = diag([1e-1;1e-1]); % measurement noise covariance matrix
+R = [1e-5 0; 0 1e-5]; %process noise covariance matrix
+Q = 1e-3; % measurement noise covariance matrix
 Lambda_psi = 0.0001;
 
 end

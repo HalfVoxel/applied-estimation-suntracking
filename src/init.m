@@ -10,21 +10,23 @@
 %			Q:				1X1 (measurement noise)
 %           Lambda_psi:     1X1 (threshold for discarding outliers)
 function [S,R,Q,Lambda_psi] = init(bound_t,bound_l, start_pose)
-M = 1000; %number of particles
-%part_bound = 20; %number of hypothesis groups
-if exist('start_pose', 'var')
-    assert(isequal(size(start_pose), [2 1]), 'Start pose has wrong dimensions');
-    S = [repmat(start_pose,1,M);
-         1/M*ones(1,M)]; %state dimensions then weights
-else
-    S = [rand(1,M)*(bound_t(2) - bound_t(1)) + bound_t(1);
-         rand(1,M)*(bound_l(2) - bound_l(1)) + bound_l(1);
-         1/M*ones(1,M)];
-end
-% Below here you may want to experiment with the values but these seem to work for most datasets.
+    M = 5000; %number of particles
+    %part_bound = 20; %number of hypothesis groups
 
-R = [1e-5 0; 0 1e-5]; %process noise covariance matrix
-Q = 1e-3; % measurement noise covariance matrix
-Lambda_psi = 0.0001;
-
+    if exist('start_pose', 'var')
+        assert(isequal(size(start_pose), [2 1]), 'Start pose has wrong dimensions');
+        S = [repmat(start_pose,1,M);
+             1/M*ones(1,M)]; %state dimensions then weights
+    else
+        S = [rand(1,M)*(bound_t(2) - bound_t(1)) + bound_t(1);
+             rand(1,M)*(bound_l(2) - bound_l(1)) + bound_l(1);
+             1/M*ones(1,M)];
+    end
+    
+    % Process noise covariance matrix
+    R = [1e-5 0; 0 1e-5];
+    
+    % Measurement noise covariance matrix [radians^2]
+    Q = 0.04^2;
+    Lambda_psi = 0.0001;
 end

@@ -11,35 +11,36 @@ function runlocalization_MCL(inputfile)
     
     
     
-    p2 = plot([0], [0]);
+    p2 = plot([0], [0], '.', 'DisplayName', 'True sun height');
     hold on;
-    p1 = plot(state_history(1,:), state_history(2,:)*180/pi);
-    e1 = plot([0], [0]);
-    e2 = plot([0], [0]);
-    s = scatter(S(1,:), S(2,:) * 180/pi);
-    legend('true sun height', 'true latitude', 'time of day error (0.1 hr)', ...
-        'latitude error (0.1 deg)','candidates');
+    p1 = plot([0], [0], 'DisplayName', 'True latitude');
+    e1 = plot([0], [0], 'DisplayName', 'Time of day error (0.1 hr)');
+    e2 = plot([0], [0], 'DisplayName', 'Latitude error (0.1 deg)');
+    s = scatter(S(1,:), S(2,:) * 180/pi, 'DisplayName', 'Candidates');
+    xlabel('Fractional Time');
+    legend();
     ylim([-90 90]);
     hold off;
     for i = 1:3650*2
-        
         height = observation_model([state ; 1]);
         if (height < 0)
             height = 0;
         end
         
+        % Update the time
         state(1) = state(1) + delta_t;
+        
+        % Update the latitude
         state = state + mvnrnd([0 0], true_R)';
-        if state(2) > pi/2
-            state(2) = pi/2;
-        end
-        if state(2) < -pi/2
-            state(2) = -pi/2;
-        end
+        
+        % Prevent the latitude from getting impossible values
+        state(2) = max(min(state(2), pi/2), -pi/2);
+
         state_history = [state_history state];
         [outlier, psi] = associate(S, height, 0.001, Q);
+        
+        % If we can see the sun, then add a new sample
         if (height > 0)
-            
             S_bar = weight(S, psi, outlier);
             S = systematic_resample(S_bar);
         end
@@ -64,8 +65,6 @@ function runlocalization_MCL(inputfile)
             
             drawnow;
         end
-        
-        
         
         S = predict(S, R, delta_t);
         observation_model(S(:,5)) - height

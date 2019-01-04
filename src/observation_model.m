@@ -28,8 +28,9 @@ function h = observation_model(S)
     A = W*(time - winter_solstice_time); 
 
     % Orbital angle change since winter solstice in rad, incl. eccentricity
-    % TODO: What is the constant -2?
-    B = A + 2*eccentricity*sin(W*(time-2));
+    % The earth is at its perihelion (closest to the sun) at around January 3rd
+    perihelion_time = 2;
+    B = A + 2*eccentricity*sin(W*(time - perihelion_time));
 
     % asin of declination of the sun w.r.t plane of rotation, incl. eccentricity
     sin_delta = sin(-axial_tilt*pi/180)*cos(B);

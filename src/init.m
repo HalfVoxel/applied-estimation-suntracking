@@ -24,9 +24,9 @@ function [S,R,Q,Lambda_psi] = init(bound_t,bound_l, start_pose)
     end
     
     % Process noise covariance matrix
-    R = [1e-5 0; 0 1e-5];
+    R = [5e-7 0; 0 1e-6];
     
     % Measurement noise covariance matrix [radians^2]
-    Q = 0.04^2;
+    Q = 0.01^2;
     Lambda_psi = 0.0001;
 end

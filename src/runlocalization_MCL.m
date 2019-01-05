@@ -7,29 +7,29 @@ function runlocalization_MCL(inputfile)
     bound_t = [0 days_per_year];
     bound_l = [-pi/2 pi/2];
     [S, R, Q, Lambda_Psi] = init(bound_t, bound_l);
-    state = [20 ; -45*pi/180]; %time, latitude in radians
+    state = [20 ; -15*pi/180]; %time, latitude in radians
     
     % Days per step
     delta_t = 0.1;
     
     % Standard deviation [minutes/step]
-    time_process_noise = 5;
+    time_process_noise = 1;
     
     % Standard deviation [radians/step]
-    latitude_process_noise = 5 * 10^(-3);
+    latitude_process_noise = 1 * 10^(-3);
 
     % Process noise covariance matrix
     true_R = [(time_process_noise/(60*24))^2 0; 0 latitude_process_noise^2];
 
     % Measurement noise covariance matrix
-    true_Q = 1e-2;
+    true_Q = 1e-4;
     
     state_history = state;
     subplot(2,1,1);
     p1 = plot([0], [0], 'DisplayName', 'True latitude');
     hold on;
     
-    p2 = plot([0], [0], 'DisplayName', 'Velocity (km / hr)')
+    p2 = plot([0], [0], 'DisplayName', 'Velocity (km / hr)');
     
     p3 = plot([0], [0], '.', 'DisplayName', 'True sun height');    
     s = scatter(S(1,:), S(2,:) * 180/pi, 'DisplayName', 'Candidates');    
@@ -55,7 +55,7 @@ function runlocalization_MCL(inputfile)
     xlabel('Fractional Time');
     hold off;
     legend();
-    ylim([-20 20]);
+    ylim([-4 4]);
     xlim([0,730]);
     hold off;
     psi = zeros(1, size(S,2));
@@ -82,6 +82,8 @@ function runlocalization_MCL(inputfile)
         height = height + normrnd(0, true_Q);
         if (height < 0)
             height = 0;
+        elseif (height > pi/2)
+            height = pi/2;
         end
         
         % Update the states

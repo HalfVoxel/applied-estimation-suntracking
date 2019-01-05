@@ -20,11 +20,14 @@ function [S_bar] = predict(S, R, delta_t, v)
         if rand < 0.005 && sqrt(v(i)) > 0.003
            S_bar(1,i) = S_bar(1,i) + round(normrnd(0,1)); 
         end
+
     end
     
     
     % Update the latitude with some noise
     S_bar(2,:) = S_bar(2,:) + noises(2,:);
+    
+    S_bar(2,:) = max(min(S_bar(2,:), pi/2), -pi/2);
     %assert(numel(find(S_bar(1,:) < S(1,:))) < 0.05*M, ...
     %    'Error: More than 5% of particles moved backwards in time with update.');
     % Copy particle weights

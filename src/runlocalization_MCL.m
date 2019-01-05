@@ -13,7 +13,7 @@ function runlocalization_MCL(inputfile)
     delta_t = 0.1;
     
     % Standard deviation [minutes/step]
-    time_process_noise = 1;
+    time_process_noise = 5;
     
     % Standard deviation [radians/step]
     latitude_process_noise = 5 * 10^(-3);
@@ -46,15 +46,16 @@ function runlocalization_MCL(inputfile)
     subplot(2,1,2);
     e1 = plot([0], [0], 'DisplayName', 'Time of day error (0.1 hours)');
     hold on;
-    e2 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
     e3 = plot([0], [0], 'DisplayName', 'Latitude error (degrees)');
+    e2 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
+    
     
     
 
     xlabel('Fractional Time');
     hold off;
     legend();
-    ylim([-10 10]);
+    ylim([-20 20]);
     xlim([0,730]);
     hold off;
     psi = zeros(1, size(S,2));
@@ -131,7 +132,7 @@ function runlocalization_MCL(inputfile)
         %   minlaterror  = abs(estimated_state(2) - state(2)) * 180/pi * 10;
                 % the above is exact error, but is off the chart if we are
                 % stuck in a symmetry point; use the below instead
-        minlaterror = abs(estimated_state(2) - abs(state(2))) * 180/pi;
+        minlaterror = abs(abs(estimated_state(2)) - abs(state(2))) * 180/pi;
         %psi(maxind)
         
         % Plot the estimated state with all different symmetries and

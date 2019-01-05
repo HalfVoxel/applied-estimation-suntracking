@@ -78,7 +78,6 @@ function runlocalization_MCL(inputfile)
         state_history = [state_history state];
         
         height = observation_model([state ; 1]);
-        height = height + normrnd(0, true_Q);
         if (height < 0)
             height = 0;
         end
@@ -150,12 +149,10 @@ function runlocalization_MCL(inputfile)
             S = systematic_resample(S_bar);
         end
 
-        f = abs(state_history(2,i+1) - state_history(2,i)) / (2*pi);
-        dt = state_history(1,i+1) - state_history(1, i);
-        distance = polar_circumference * f;
+        distance = polar_circumference * 
         
         p2.XData = [p2.XData state(1)];
-        p2.YData = [p2.YData distance / 1000 / 24 / dt];
+        p2.YData = 
         
         p3.XData = [p3.XData state(1)];
         p3.YData = [p3.YData height*180/pi];

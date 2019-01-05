@@ -5,12 +5,12 @@
 %           bound_l:        1x2 (lower, upper bounds on latitude)
 %           start_pose:     2X1 (fixed initial time estimate)
 % Outputs:
-%			S(0):			3XM (particles;row for time then row for weights)
+%			S(0):			3XM (particles;rows for time, latitude, weights)
 %			R:				2X2 (process noise)
 %			Q:				1X1 (measurement noise)
 %           Lambda_psi:     1X1 (threshold for discarding outliers)
 function [S,R,Q,Lambda_psi] = init(bound_t,bound_l, start_pose)
-    M = 5000; %number of particles
+    M = 1000; %number of particles
     %part_bound = 20; %number of hypothesis groups
 
     if exist('start_pose', 'var')

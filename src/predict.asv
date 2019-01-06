@@ -3,9 +3,7 @@
 % Inputs:
 %           S(t-1)              3XM % previous timestep's particles
 %           R                   2X2 % state model noise
-%           delta_t             1X1 % time change per step
-%           v                   1XM % weights of particles, to determine if
-%                                       day adjust noise should be added
+%           delta_t             1X1
 % Outputs:
 %           S_bar(t)            4XM
 function [S_bar] = predict(S, R, delta_t, v)
@@ -17,17 +15,19 @@ function [S_bar] = predict(S, R, delta_t, v)
     S_bar(2,:) = S(2,:);
     % Update the time in full day increments
     for i = 1:M
-        if rand < 0.005 && sqrt(v(i)) > 0.003
-           S_bar(1,i) = S_bar(1,i) + round(normrnd(0,1)); 
+        sig = sqrt(v(i));
+        prob_sig = (normcdf(sig)-0.5)*2;
+        if rand < prob_sig^2/20
+            S_bar(1,i) = S_bar(1,i) + round(rand*2 - 1);
         end
-
+        noises(2,i) = noises(2,i) * prob_sig
+        
     end
     
     
     % Update the latitude with some noise
     S_bar(2,:) = S_bar(2,:) + noises(2,:);
-    
-    S_bar(2,:) = max(min(S_bar(2,:), pi/2), -pi/2);
+    S_bar(2,:) = max(min(S_bar(2,:), pi/2), -pi/2); %clamp latitude
     %assert(numel(find(S_bar(1,:) < S(1,:))) < 0.05*M, ...
     %    'Error: More than 5% of particles moved backwards in time with update.');
     % Copy particle weights

@@ -41,4 +41,6 @@ function h = observation_model(S)
     
     % Expected sun height in radians
     h = asin(sin_h);
+    
+    h(h<0) = 0;
 end

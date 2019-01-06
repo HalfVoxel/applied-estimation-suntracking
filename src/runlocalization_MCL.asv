@@ -7,7 +7,7 @@ function runlocalization_MCL(inputfile)
     bound_t = [0 days_per_year];
     bound_l = [-pi/2 pi/2];
     [S, R, Q, Lambda_Psi] = init(bound_t, bound_l);
-    state = [20 ; -15*pi/180]; %time, latitude in radians
+    state = [20 ; -45*pi/180]; %time, latitude in radians
     
     % Days per step
     delta_t = 0.1;
@@ -16,20 +16,20 @@ function runlocalization_MCL(inputfile)
     time_process_noise = 1;
     
     % Standard deviation [radians/step]
-    latitude_process_noise = 1 * 10^(-3);
+    latitude_process_noise = 5 * 10^(-3);
 
     % Process noise covariance matrix
     true_R = [(time_process_noise/(60*24))^2 0; 0 latitude_process_noise^2];
 
     % Measurement noise covariance matrix
-    true_Q = 1e-4;
+    true_Q = 1e-2;
     
     state_history = state;
     subplot(2,1,1);
     p1 = plot([0], [0], 'DisplayName', 'True latitude');
     hold on;
     
-    p2 = plot([0], [0], 'DisplayName', 'Velocity (km / hr)');
+    p2 = plot([0], [0], 'DisplayName', 'Velocity (km / hr)')
     
     p3 = plot([0], [0], '.', 'DisplayName', 'True sun height');    
     s = scatter(S(1,:), S(2,:) * 180/pi, 'DisplayName', 'Candidates');    
@@ -46,16 +46,15 @@ function runlocalization_MCL(inputfile)
     subplot(2,1,2);
     e1 = plot([0], [0], 'DisplayName', 'Time of day error (0.1 hours)');
     hold on;
-    e3 = plot([0], [0], 'DisplayName', 'Latitude error (degrees)');
     e2 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
-    
+    e3 = plot([0], [0], 'DisplayName', 'Latitude error (degrees)');
     
     
 
     xlabel('Fractional Time');
     hold off;
     legend();
-    ylim([-4 4]);
+    ylim([-10 10]);
     xlim([0,730]);
     hold off;
     psi = zeros(1, size(S,2));
@@ -79,11 +78,8 @@ function runlocalization_MCL(inputfile)
         state_history = [state_history state];
         
         height = observation_model([state ; 1]);
-        height = height + normrnd(0, true_Q);
         if (height < 0)
             height = 0;
-        elseif (height > pi/2)
-            height = pi/2;
         end
         
         % Update the states
@@ -134,7 +130,7 @@ function runlocalization_MCL(inputfile)
         %   minlaterror  = abs(estimated_state(2) - state(2)) * 180/pi * 10;
                 % the above is exact error, but is off the chart if we are
                 % stuck in a symmetry point; use the below instead
-        minlaterror = abs(abs(estimated_state(2)) - abs(state(2))) * 180/pi;
+        minlaterror = abs(estimated_state(2) - abs(state(2))) * 180/pi;
         %psi(maxind)
         
         % Plot the estimated state with all different symmetries and
@@ -153,12 +149,10 @@ function runlocalization_MCL(inputfile)
             S = systematic_resample(S_bar);
         end
 
-        f = abs(state_history(2,i+1) - state_history(2,i)) / (2*pi);
-        dt = state_history(1,i+1) - state_history(1, i);
-        distance = polar_circumference * f;
+        distance = polar_circumference * 
         
         p2.XData = [p2.XData state(1)];
-        p2.YData = [p2.YData distance / 1000 / 24 / dt];
+        p2.YData = 
         
         p3.XData = [p3.XData state(1)];
         p3.YData = [p3.YData height*180/pi];

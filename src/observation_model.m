@@ -20,7 +20,7 @@ function h = observation_model(S)
     omega = pi*(1 - 2*mod(time,1));
     
     % Time of winter solstice in fractional days relative to the start of
-    % the year. The winter solstice happens around December 21st.
+    % the year. The winter solstice happens around December 22st.
     winter_solstice_time = -10;
     
     % Orbital angle change since winter solstice in rad, 
@@ -32,7 +32,7 @@ function h = observation_model(S)
     perihelion_time = 2;
     B = A + 2*eccentricity*sin(W*(time - perihelion_time));
 
-    % asin of declination of the sun w.r.t plane of rotation, incl. eccentricity
+    % sine of declination of the sun w.r.t plane of rotation, incl. eccentricity
     sin_delta = sin(-axial_tilt*pi/180)*cos(B);
     
     % cos(theta) = sin(latitude)sin(delta) + cos(latitude)cos(delta)cos(omega)

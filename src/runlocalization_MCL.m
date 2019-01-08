@@ -1,28 +1,19 @@
 % This function is the entrance point to the code. 
-function runlocalization_MCL(inputfile)
-    rng(1)
+function runlocalization_MCL(num_particles, R, Q, Lambda_Psi, starting_state, delta_t, time_process_noise, latitude_process_noise, measurement_noise, save_index, allow_inject)
     days_per_year = 365.2422;
     polar_circumference = 39941e3; %polar circumference in meters
 
     bound_t = [0 days_per_year];
     bound_l = [-pi/2 pi/2];
-    [S, R, Q, Lambda_Psi] = init(bound_t, bound_l);
-    state = [20 ; -15*pi/180]; %time, latitude in radians
-    
-    % Days per step
-    delta_t = 0.1;
-    
-    % Standard deviation [minutes/step]
-    time_process_noise = 1;
-    
-    % Standard deviation [radians/step]
-    latitude_process_noise = 1 * 10^(-3);
+    S = init_particles(num_particles, bound_t, bound_l);
+    mean_weights = zeros(size(S,2),1);
+    state = starting_state; %time, latitude in radians
+    estimation_history = [];
 
     % Process noise covariance matrix
-    true_R = [(time_process_noise/(60*24))^2 0; 0 latitude_process_noise^2];
+    true_R = [(time_process_noise*delta_t/(60*24))^2 0; 0 (delta_t*latitude_process_noise)^2];
 
-    % Measurement noise covariance matrix
-    true_Q = 1e-4;
+    true_Q = (measurement_noise * pi/180)^2;
     
     state_history = state;
     subplot(2,1,1);
@@ -33,7 +24,7 @@ function runlocalization_MCL(inputfile)
     
     p3 = plot([0], [0], '.', 'DisplayName', 'True sun height');    
     s = scatter(S(1,:), S(2,:) * 180/pi, 'DisplayName', 'Candidates');    
-    bestEstimate = plot([0], [0], 'ro', 'DisplayName', 'Best Estimate');
+    bestEstimate = plot([0], [0], 'rx', 'DisplayName', 'Best Estimate');
     
     legend()
     ylim([-90 90]);
@@ -48,10 +39,13 @@ function runlocalization_MCL(inputfile)
     hold on;
     e3 = plot([0], [0], 'DisplayName', 'Latitude error (degrees)');
     e2 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
+    e5 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
+    e6 = plot([0], [0], 'DisplayName', 'Time of year error (days)');
     
     
     
-
+    drawnow;
+    
     xlabel('Fractional Time');
     hold off;
     legend();
@@ -61,11 +55,6 @@ function runlocalization_MCL(inputfile)
     psi = zeros(1, size(S,2));
     v = zeros(1, size(S,2));
     for i = 1:3650*2
-        s.XData = S(1,:);
-        s.YData = S(2,:) * 180/pi;
-        p1.XData = state_history(1,:);
-        p1.YData = state_history(2,:)*180/pi;
-
         dt = delta_t * (0.8 + 0.2 * rand());
         % Update the time without noise
         state(1) = state(1) + dt;
@@ -79,12 +68,14 @@ function runlocalization_MCL(inputfile)
         state_history = [state_history state];
         
         height = observation_model([state ; 1]);
-        height = height + normrnd(0, true_Q);
-        if (height < 0)
-            height = 0;
-        elseif (height > pi/2)
+        % Note: if the height is zero, then we did not observe anything
+        if (height > 0)
+            height = height + normrnd(0, true_Q)
+        end
+        if (height > pi/2)
             height = pi/2;
         end
+        height
         
         % Update the states
         S = predict(S, R, dt, v);
@@ -98,15 +89,37 @@ function runlocalization_MCL(inputfile)
         % Note that the state is not perfectly periodic in a year because
         % a year does not have an integer number of days
         % S(1,:) = mod(S(1,:), days_per_year);
-        if (height > 0)
-            % Add in a few random particles
-            [S2, R2, Q2, Lambda_Psi2] = init(bound_t, bound_l);
-            S(:,randi(size(S,2), 10, 1)) = S2(:,1:10);
+        if (height > 0) || true
+            if height > 0 && allow_inject
+                % Add in a few random particles
+                num_random = 50; % round(500 / max(mean(psi)*mean(psi), 5));
+                random_indices = randi(size(S,2), num_random, 1);
+                S2 = init_particles(num_random, bound_t, bound_l);
+                S2(3,:) = 0;
+                S2(1,:) = round(S2(1,:)) + mod(S(1,random_indices), 1);
+                S(:,random_indices) = S2(:,1:num_random);
+                mean_weights(random_indices) = -10;
 
-            [outlier, psi, v] = associate(S, height, 0.001, Q);
+                num_symmetry = 20;
+                random_indices = randi(size(S,2), num_symmetry, 1);
+                new_ts = S(1,random_indices) + (randi(2, 1, num_symmetry) * 2 - 3) * round(days_per_year/2) + round(mvnrnd(zeros(num_symmetry, 1), 1))';
+                inside_bounds = new_ts >= bound_t(1) & new_ts <= bound_t(2);
+                S(1,random_indices(inside_bounds)) = new_ts(inside_bounds);
+                S(2,random_indices(inside_bounds)) = -S(2,random_indices(inside_bounds));
+                mean_weights(random_indices(inside_bounds)) = -10;
+            end
+
+            [outlier, psi, v] = associate(S, height, Lambda_Psi, Q * (1 + 1000 * exp(-i/50)));
         end
         
-        [maxval, maxind] = max(psi);
+        psi_mean = mean(psi)
+        e6.XData = [e6.XData state(1)];
+        e6.YData = [e6.YData mean(psi)];
+        
+        mean_weights = mean_weights * 0.8 + log(psi'+0.0000001) * 0.2;
+        
+        [maxval, maxind] = max(mean_weights);
+        % [maxval, maxind] = max(psi);
         
         %G = S(1,:);
         %H = round(S(2,:));
@@ -115,21 +128,22 @@ function runlocalization_MCL(inputfile)
         total = 0;
         est_latitude = 0;
         est_time = 0;
-        [B,I] = maxk(psi, 5);
-        for j = 1:5
+        [B,I] = maxk(mean_weights .* (abs(S(1,:) - S(1,maxind))' < 50), 30);
+        for j = 1:length(I)
             index = I(j);
-            est_latitude = est_latitude + S(2,index)*psi(index);
-            est_time = est_time + S(1,index)*psi(index);
-            total = total + psi(index);
+            est_latitude = est_latitude + S(2,index)*mean_weights(index);
+            est_time = est_time + S(1,index)*mean_weights(index);
+            total = total + mean_weights(index);
         end
-        %estimated_state(1) = round(est_time / total) + mod(estimated_state(1),1);
-        %estimated_state(2) = est_latitude / total;
+        estimated_state(1) = round(est_time / total) + mod(estimated_state(1),1);
+        estimated_state(2) = est_latitude / total;
+        estimation_history = [estimation_history estimated_state];
         mintimeerror = abs(mod(estimated_state(1) - state(1),1)) * 24;
         mintimeerror = mod(mintimeerror + 12, 24) - 12;
         
         est_dayofyear = mod(estimated_state(1), days_per_year);
         other_est_dayofyear = mod(est_dayofyear + days_per_year/2, days_per_year);
-        dayofyear = mod(state(1), 365.25);
+        dayofyear = mod(state(1), days_per_year);
         mindayerror = min(abs(dayofyear - est_dayofyear), abs(dayofyear - other_est_dayofyear));
         %   minlaterror  = abs(estimated_state(2) - state(2)) * 180/pi * 10;
                 % the above is exact error, but is off the chart if we are
@@ -137,6 +151,11 @@ function runlocalization_MCL(inputfile)
         minlaterror = abs(abs(estimated_state(2)) - abs(state(2))) * 180/pi;
         %psi(maxind)
         
+        s.XData = S(1,:);
+        s.YData = S(2,:) * 180/pi;
+        p1.XData = state_history(1,:);
+        p1.YData = state_history(2,:)*180/pi;
+
         % Plot the estimated state with all different symmetries and
         % periodicities.
         % The time is periodic in a year and there is a symmetry such that
@@ -148,9 +167,13 @@ function runlocalization_MCL(inputfile)
         bestEstimate.YData = [bestEstimate.YData, -bestEstimate.YData];
         
         % If we can see the sun, then add a new sample
-        if (height > 0)
+        if (height > 0) || true
             S_bar = weight(S, psi, outlier);
+            S_bar = [S_bar; psi; mean_weights'];
             S = systematic_resample(S_bar);
+            psi = S(4,:);
+            mean_weights = S(5,:)';
+            S = S(1:3,:);
         end
 
         f = abs(state_history(2,i+1) - state_history(2,i)) / (2*pi);
@@ -168,11 +191,26 @@ function runlocalization_MCL(inputfile)
         e2.YData = [e2.YData mindayerror];
         e3.XData = [e3.XData state(1)];
         e3.YData = [e3.YData minlaterror];
-
+        
+        e5.XData = [e5.XData state(1)];
+        e5.YData = [e5.YData maxval];
+        
+%         if mintimeerror < -3
+%             drawnow;
+%             pause;
+%         end
+        
+        
         if mod(i, 10) == 0
             drawnow;
         end
         
+        % drawnow;
+        % pause
+        
         % observation_model(S(:,5)) - height
     end
+    
+    estimation_history = [estimation_history(:,1) estimation_history];
+    dlmwrite(sprintf('../test%d/states.csv', save_index), [state_history; p3.YData; e1.YData/10; e2.YData; e3.YData; estimation_history]);
 end
